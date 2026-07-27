@@ -1,0 +1,5 @@
+risk_pct,total_return_pct,cagr_pct,historical_max_drawdown_pct,bootstrap_p95_drawdown_pct,probability_dd_over_45_pct,passes_historical_45_pct_gate
+0.5,265.35,26.86,23.58,25.65,0.04,true
+1.0,989.96,55.05,42.05,46.36,6.12,true
+2.0,5536.80,109.64,67.56,74.88,64.30,false
+3.0,14985.16,151.17,82.64,90.45,94.08,false

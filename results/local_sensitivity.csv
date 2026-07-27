@@ -1,0 +1,4 @@
+entry_dc,stop_dc,reward_risk,development_r_per_month,r_per_month_2025,r_per_month_2026,full_r_per_month,full_profit_factor,frozen
+35,18,2.0,4.386,4.613,1.995,4.196,1.235,false
+36,18,2.0,4.533,4.363,2.454,4.300,1.243,true
+37,18,2.0,4.359,4.036,3.075,4.175,1.234,false
