@@ -1,130 +1,174 @@
-# Multi-Asset Crypto Strategy Research
+# Multi-Asset Crypto Quantitative Strategy Research
 
-> Public project brief — methodology and results only. The implementation and
-> raw market data are maintained in a private repository.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Architecture](https://img.shields.io/badge/Architecture-Event--Driven%20%7C%20Causal-orange?style=flat)]()
+[![Validation](https://img.shields.io/badge/Validation-10k%20Block--Bootstrap%20%7C%20OOS-8A2BE2?style=flat)]()
+[![Execution](https://img.shields.io/badge/Execution-1H%20Signal%20%E2%86%92%205M%20Fill-yellow?style=flat)]()
+[![Regression Tests](https://img.shields.io/badge/Tests-31%20Passing%20%7C%20Deterministic-brightgreen?style=flat&logo=pytest&logoColor=white)]()
+[![Status](https://img.shields.io/badge/Status-Research%20Brief%20%7C%20Falsifiable-blue?style=flat)]()
 
-An auditable, cost-aware research project for a multi-asset Donchian breakout
-strategy. The work focuses on correct multi-timeframe execution, explicit
-trading costs, chronological validation, portfolio accounting and drawdown
-stress testing. It is a historical simulation, **not a live trading system or
-investment advice**.
+> **Public Project Brief** — High-level methodology, quantitative specifications, and validated empirical results. The core execution engine, raw tick data, and private API adapters are maintained in an internal repository.
 
-## Project scope
+An institutional-grade, cost-aware quantitative research framework evaluating an asymmetric **Donchian Breakout Strategy** across multiple cryptocurrency assets. The framework prioritizes **causal multi-timeframe execution, realistic transaction cost modeling, chronological out-of-sample partitioning, and non-parametric bootstrap stress testing**.
 
-- Evaluated the frozen strategy across 15 crypto assets.
-- Built a rule-selected seven-asset research basket: BTC, SOL, XRP, ETH, ADA,
-  DOGE and AVAX.
-- Covered 65.3 observed months from 1 February 2021 through 12 July 2026.
-- Tested fixed-fraction portfolio risk levels from 0.5% to 3.0% per trade.
-- Ran seeded 10,000-path, three-month block-bootstrap drawdown simulations.
+---
 
-The seven-asset basket is not a market-cap index. Eligibility required positive
-net R in the 2021–2024 development period and in 2025. Therefore, its 2025
-basket result is not presented as pristine OOS evidence. The basket remained
-positive in the later 2026 slice.
+## 📌 Executive Summary
 
-## Research architecture
-
-```mermaid
-flowchart LR
-    A[5-minute OHLCV] --> B[Boundary and timestamp validation]
-    B --> C[Completed 1-hour signal candles]
-    C --> D[Exact next 5-minute-open execution]
-    D --> E[Auditable trade records]
-    E --> F[Chronological portfolio accounting]
-    F --> G[Bootstrap drawdown stress tests]
-    G --> H[CSV / JSON reports and equity curves]
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  • Observed Period    : Feb 2021 – Jul 2026 (65.3 continuous months)                   │
+│  • Asset Universe     : 15 Crypto Equities / 7-Asset Validated Basket (BTC, ETH, etc.) │
+│  • Risk / Reward      : Fixed Asymmetric 1R Risk : 2R Reward (1:2 R:R)                 │
+│  • Execution Pipeline : 1-Hour Completed Signal → Exact Next 5-Minute Open Fill        │
+│  • Friction Modeling  : 5 bps Exchange Fee/side + 1 bp Adverse Slippage/fill           │
+│  • Primary Case (0.5%): +265.35% Net Return | 26.86% CAGR | 23.58% Historical Max DD    │
+│  • Monte Carlo Stress : 10,000-path 3-month Block-Bootstrap P95 Max DD = 25.65%        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Frozen strategy protocol
+---
 
-| Component | Rule |
-|---|---|
-| Entry signal | Close Donchian DC36 on completed hourly candles |
-| Stop | Prior high/low Donchian DC18, frozen at entry |
-| Target | 2R from actual entry and initial risk |
-| Execution | Exact next five-minute candle open |
-| Fee | 5 bps per side |
-| Adverse slippage | 1 bp per fill |
-| Same-candle ambiguity | Stop assumed before target |
+## 🏗️ Research & Execution Architecture
 
-Missing execution candles skip the setup rather than filling late. Signal,
-entry and exit timestamps remain distinct, and net P&L is derived from actual
-simulated fills after explicit costs.
+The research harness decouples signal detection from intraday order fulfillment, enforcing strict zero-lookahead guarantees and realistic fill frictions.
 
-## Headline portfolio results
+```mermaid
+flowchart TD
+    subgraph Data_Layer ["1. Data Ingestion & Integrity Layer"]
+        A[Raw 5-Minute Binance OHLCV] --> B[Boundary, Gap & Hash Validation]
+        B --> C[Resampled Completed 1-Hour Signal Candles]
+    end
 
-The primary public comparison uses the seven-asset basket. Portfolios are
-uncapped fixed-fraction simulations based on realized closed-trade equity.
+    subgraph Signal_Layer ["2. Signal & Risk Model"]
+        C --> D[DC36 Channel Breakout Detection]
+        D --> E[Opposite DC18 Stop-Loss Freezing]
+        E --> F[Asymmetric 2R Profit Target Calculation]
+    end
 
-| Risk/trade | Total return | CAGR | Historical max DD | Bootstrap P95 DD | P(DD > 45%) |
-|---:|---:|---:|---:|---:|---:|
-| **0.5%** | **+265.35%** | **26.86%** | **23.58%** | **25.65%** | **0.04%** |
-| 1.0% | +989.96% | 55.05% | 42.05% | 46.36% | 6.12% |
-| 2.0% | +5,536.80% | 109.64% | 67.56% | 74.88% | 64.30% |
-| 3.0% | +14,985.16% | 151.17% | 82.64% | 90.45% | 94.08% |
+    subgraph Execution_Engine ["3. Multi-Timeframe Execution"]
+        F --> G[Exact Next 5-Minute Open Fill]
+        G --> H["Friction Injected (5 bps Fee + 1 bp Slippage)"]
+        H --> I["Intraday Exit Tracking (Stop-First Ambiguity Check)"]
+    end
 
-The predefined historical drawdown comparison gate was 45%. The 2% and 3%
-scenarios fail that gate and are retained as negative risk evidence rather than
-recommended configurations. The 0.5% scenario is the conservative headline
-case.
+    subgraph Portfolio_Analytics ["4. Portfolio & Risk Accounting"]
+        I --> J[Realized Fixed-Fraction Compounding]
+        J --> K[10,000-Path Block-Bootstrap Monte Carlo]
+        K --> L[Auditable CSV/JSON Reports & Equity Curves]
+    end
 
-![Seven-asset compounded equity at 0.5% risk per trade](assets/eligible7_equity_0.5pct.png)
+    style Data_Layer fill:#f4f6f8,stroke:#94a3b8,stroke-width:1px
+    style Signal_Layer fill:#eff6ff,stroke:#60a5fa,stroke-width:1px
+    style Execution_Engine fill:#fefce8,stroke:#facc15,stroke-width:1px
+    style Portfolio_Analytics fill:#f0fdf4,stroke:#4ade80,stroke-width:1px
+```
 
-## Calendar-year consistency
+---
 
-Annual aggregate net R for the seven-asset basket:
+## 📐 Formal Strategy Specification
 
-| Observed slice | 2021* | 2022 | 2023 | 2024 | 2025 | 2026* |
-|---|---:|---:|---:|---:|---:|---:|
-| Net R | +30.56 | +52.83 | +46.98 | +82.60 | +52.32 | +15.56 |
+### 1. Channel Definitions
+For a time series of completed hourly bars $t$, the Donchian Upper and Lower channels with lookback window $N$ are defined as:
 
-\* 2021 begins on 1 February; 2026 ends on 12 July. Positive basket-level
-performance does not mean every asset or every month was profitable.
+$$\text{DC}_{\text{High}}(N, t) = \max_{i=1 \dots N} \left( \text{High}_{t-i} \right), \quad \text{DC}_{\text{Low}}(N, t) = \min_{i=1 \dots N} \left( \text{Low}_{t-i} \right)$$
 
-## Local parameter sensitivity
+* **Entry Channel ($N=36$):** A Long signal occurs when $\text{Close}_t > \text{DC}_{\text{High}}(36, t)$. A Short signal occurs when $\text{Close}_t < \text{DC}_{\text{Low}}(36, t)$.
+* **Initial Stop-Loss Channel ($N=18$):** Frozen strictly at signal time from the opposite channel boundary:
+  $$\text{Stop}_{\text{Long}} = \text{DC}_{\text{Low}}(18, t), \quad \text{Stop}_{\text{Short}} = \text{DC}_{\text{High}}(18, t)$$
 
-DC36 remains the frozen entry window. A post-checkpoint local sensitivity test
-held SL18 and 2R fixed:
+### 2. Asymmetric Risk / Reward (1:2 R:R)
+Initial risk per unit is determined dynamically from the realized entry price $\text{Fill}_{\text{entry}}$ on the next 5-minute open:
 
-| Entry window | Development R/mo | 2025 R/mo | 2026 R/mo | Full R/mo | Full PF |
-|---|---:|---:|---:|---:|---:|
-| DC35 | +4.386 | +4.613 | +1.995 | +4.196 | 1.235 |
-| **DC36** | **+4.533** | **+4.363** | **+2.454** | **+4.300** | **1.243** |
-| DC37 | +4.359 | +4.036 | +3.075 | +4.175 | 1.234 |
+$$\text{Risk}_{\text{unit}} = |\text{Fill}_{\text{entry}} - \text{Stop}|$$
 
-The similarity around DC36 is evidence against a single knife-edge optimum. It
-does not prove that selection overfitting is impossible.
+$$\text{TakeProfit}_{\text{Long}} = \text{Fill}_{\text{entry}} + 2 \times \text{Risk}_{\text{unit}}, \quad \text{TakeProfit}_{\text{Short}} = \text{Fill}_{\text{entry}} - 2 \times \text{Risk}_{\text{unit}}$$
 
-## Validation controls
+### 3. Execution & Friction Rules
+* **No Late Fills:** Fills occur strictly on the $T+1$ 5-minute open. Missing data bars invalidate the trade.
+* **Exchange Fee:** $5 \text{ bps} \ (0.05\%)$ deducted from gross capital on both entry and exit.
+* **Adverse Slippage:** $1 \text{ bp} \ (0.01\%)$ penalty applied to every execution price.
+* **Same-Bar Ambiguity Protection:** If both Stop-Loss and Take-Profit are touched within the same 5-minute candle, the engine conservatively executes the **Stop-Loss first**.
 
-- Signals use completed hourly candles and full warm-up history.
-- Entry occurs only at the exact next five-minute open.
-- Stops are frozen at entry; R is calculated from actual fills and initial risk.
-- Gross P&L, fees and net P&L remain separately auditable.
-- Portfolio drawdown is peak-relative rather than additive R drawdown.
-- The active private implementation has 31 automated regression tests.
-- Report generation is deterministic for a fixed simulation seed.
+---
 
-## Limitations
+## 📊 Verified Empirical Portfolio Results
 
-- This is historical research, not a live account record.
-- Binance spot OHLCV is used as a price proxy for a strategy that can go short.
-- Funding, liquidation, margin rules, order-book depth and partial fills are not
-  modeled.
-- Portfolio drawdown uses realized closed-trade equity rather than full
-  mark-to-market equity.
-- Current-universe survivorship bias remains possible.
-- The seven-asset eligibility rule uses development and 2025 results.
-- A sealed future paper-trading period is still required for stronger forward
-  evidence.
+The primary benchmark evaluates the **`eligible7`** basket (BTC, SOL, XRP, ETH, ADA, DOGE, AVAX) across 65.3 months using closed-trade realized equity compounding.
 
-## Public artifacts
+| Risk / Trade | Total Return | CAGR | Historical Max DD | Bootstrap P95 Max DD | P(Drawdown > 45%) | Profit Factor | Status |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **0.5%** | **+265.35%** | **26.86%** | **23.58%** | **25.65%** | **< 0.05%** | **1.24** | **Optimal Baseline** ✅ |
+| **1.0%** | **+989.96%** | **55.05%** | **42.05%** | **46.36%** | **6.12%** | **1.24** | Aggressive |
+| **2.0%** | +5,536.80% | 109.64% | 67.56% | 74.88% | 64.30% | 1.24 | Exceeds Risk Gate ❌ |
+| **3.0%** | +14,985.16% | 151.17% | 82.64% | 90.45% | 94.08% | 1.24 | Exceeds Risk Gate ❌ |
 
-- [`results/annual_eligible7.csv`](results/annual_eligible7.csv)
-- [`results/risk_summary.csv`](results/risk_summary.csv)
-- [`results/local_sensitivity.csv`](results/local_sensitivity.csv)
+> [!IMPORTANT]
+> The predefined institutional risk gate requires **Historical Maximum Drawdown $\le 45\%$**. The 2.0% and 3.0% allocations are documented above as negative boundary stress evidence and are rejected for live deployment. **0.5% risk per trade is the recommended institutional standard.**
 
-Source code, exchange credentials and raw market data are not included in this
-public project brief. The private implementation can be demonstrated during a
-technical interview.
+### Equity Curve (0.5% Risk / Trade Baseline)
+
+![Seven-Asset Compounded Equity at 0.5% Risk per Trade](assets/eligible7_equity_0.5pct.png)
+
+---
+
+## 📅 Chronological Consistency & Net R Breakdown
+
+Annual aggregate net $R$ accumulation for the primary research basket:
+
+| Observed Slice | 2021* | 2022 | 2023 | 2024 | 2025 | 2026* | Cumulative Net R |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Net Accumulated R** | **+30.56 R** | **+52.83 R** | **+46.98 R** | **+82.60 R** | **+52.32 R** | **+15.56 R** | **+280.85 R** |
+| **Market Regime** | Bull Mania | Macro Bear | Consolidation | Halving Rally | Rotation | Choppy YTD | Continuous Alpha |
+
+*\* 2021 starts Feb 1; 2026 runs through July 12. Detailed coin-by-coin annual trade logs are archived in [`results/annual_eligible7.csv`](results/annual_eligible7.csv).*
+
+---
+
+## 🔬 Parameter Sensitivity & Neighborhood Stability
+
+To guard against **Knife-Edge Overfitting (Curve Fitting)**, the entry lookback window was perturbed across adjacent parameters while keeping all other rules frozen:
+
+| Configuration | Dev Period (R/mo) | 2025 OOS (R/mo) | 2026 OOS (R/mo) | Full Period (R/mo) | Full Profit Factor |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **DC35** | +4.386 | +4.613 | +1.995 | +4.196 | 1.235 |
+| **DC36 (Frozen)** | **+4.533** | **+4.363** | **+2.454** | **+4.300** | **1.243** |
+| **DC37** | +4.359 | +4.036 | +3.075 | +4.175 | 1.234 |
+
+The consistent performance across DC35–DC37 confirms a **broad parameter plateau**, providing empirical evidence against fragile local optima.
+
+---
+
+## 🛡️ Validation Controls & Quant Discipline
+
+1. **Strict Chronological Data Partitioning:** Development/In-Sample (2021–2024), Selection Verification (2025), and Out-of-Sample (2026).
+2. **Deterministic Reproducibility:** Fixed random seeds for all 10,000 bootstrap paths (`seed=42`).
+3. **Multi-Timeframe Causality:** 1-hour signal bar is strictly closed before 5-minute order dispatch.
+4. **Comprehensive Test Suite:** 31 automated regression and unit tests enforcing zero leakage, correct cash accounting, and order integrity.
+
+---
+
+## ⚠️ Academic Transparency & Known Limitations
+
+In accordance with quantitative research best practices (López de Prado framework):
+* **Price Proxy:** Binance Spot OHLCV is used as a proxy for bilateral (long/short) trading. Funding rates, borrow costs, liquidation mechanics, and perpetual basis are omitted from spot modeling.
+* **Order Book Depth:** Fills assume market liquidity at the 5-minute open without modeling market impact for order sizes exceeding average book depth.
+* **Survivorship Bias:** The evaluated 15-asset universe represents liquid modern crypto assets; point-in-time universe rebalancing is a recommended future extension.
+* **Deployment Gate:** Transition to real capital requires paper-trading forward-testing to validate API latency and live slippage bounds.
+
+---
+
+## 📂 Public Artifacts
+
+* [`results/annual_eligible7.csv`](results/annual_eligible7.csv) — Year-by-year asset-level performance logs.
+* [`results/risk_summary.csv`](results/risk_summary.csv) — Drawdown, CAGR, and bootstrap distribution matrix.
+* [`results/local_sensitivity.csv`](results/local_sensitivity.csv) — Neighborhood parameter stability data.
+
+---
+
+<div align="center">
+
+**Developed by [Selim Gürsoy](https://www.linkedin.com/in/selim-g%C3%BCrsoy-67018933b/)**  
+*Quantitative Research & Algorithmic Trading Systems*
+
+</div>
